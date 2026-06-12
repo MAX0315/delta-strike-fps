@@ -289,22 +289,44 @@ addEventListener("keydown",e=>{
   if(e.code==="KeyF")skillSlow();
 });
 addEventListener("keyup",e=>keys[e.code]=false);
-addEventListener("mousedown",e=>{if(e.button===0)mouseDown=true;});
+addEventListener("mousedown",e=>{
+  if(e.button!==0)return;
+  // 点到按钮等 UI 时不算开枪
+  if(e.target.closest&&e.target.closest(".btn"))return;
+  mouseDown=true;
+  // 游戏中且未锁定时，点击画面尝试重新锁定鼠标
+  if(state==="playing"&&!pointerLocked)lockPointer();
+});
 addEventListener("mouseup",e=>{if(e.button===0)mouseDown=false;});
 addEventListener("mousemove",e=>{
-  if(!pointerLocked||state!=="playing")return;
-  player.yaw-=e.movementX*.0022;
-  player.pitch-=e.movementY*.0022;
+  if(state!=="playing")return;
+  // 已锁定：标准 FPS 视角；未锁定（如 iframe 预览禁用了指针锁定）：兜底用原始位移量控制视角
+  const mx=e.movementX||0,my=e.movementY||0;
+  player.yaw-=mx*.0022;
+  player.pitch-=my*.0022;
   player.pitch=Math.max(-1.45,Math.min(1.45,player.pitch));
 });
+let hadLock=false;
 document.addEventListener("pointerlockchange",()=>{
   pointerLocked=document.pointerLockElement===renderer.domElement;
-  if(!pointerLocked&&state==="playing"){
+  if(pointerLocked)hadLock=true;
+  // 只有「曾经锁定成功后按 Esc 退出」才触发暂停；锁定从未成功（兜底模式）不暂停
+  if(!pointerLocked&&hadLock&&state==="playing"){
     state="paused";
     $("pause").classList.remove("hidden");
   }
 });
-function lockPointer(){renderer.domElement.requestPointerLock();}
+addEventListener("keydown",e=>{
+  if(e.code==="Escape"&&state==="playing"&&!pointerLocked){
+    state="paused";$("pause").classList.remove("hidden");
+  }
+});
+function lockPointer(){
+  try{
+    const p=renderer.domElement.requestPointerLock();
+    if(p&&p.catch)p.catch(()=>{});
+  }catch(err){}
+}
 
 /* ---------------- 碰撞 ---------------- */
 function collide(pos,r){
@@ -761,7 +783,7 @@ function loop(){
   const sprint=(keys.ShiftLeft||keys.ShiftRight)?1.55:1;
   const speed=7*sprint;
   const f=new THREE.Vector3(-Math.sin(player.yaw),0,-Math.cos(player.yaw));
-  const r=new THREE.Vector3(f.z,0,-f.x);
+  const r=new THREE.Vector3(-f.z,0,f.x);
   const move=new THREE.Vector3();
   if(keys.KeyW)move.add(f);
   if(keys.KeyS)move.sub(f);
@@ -801,7 +823,7 @@ function loop(){
 
   /* --- 开火/换弹 --- */
   weapon.cooldown-=dt;
-  if(mouseDown&&pointerLocked)shoot();
+  if(mouseDown)shoot();
   if(weapon.reloading){
     weapon.reloadT-=dt;
     gun.rotation.x=Math.sin(weapon.reloadT*4)*.3;
@@ -934,6 +956,7 @@ function loop(){
   drawMinimap();
   renderer.render(scene,camera);
 }
+window.__ds={player:player,game:game,weapon:weapon,skills:skills,keys:keys,getState:function(){return state;}};
 loop();
 })();
 </script>
