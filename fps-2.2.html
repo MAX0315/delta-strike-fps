@@ -43,6 +43,10 @@
   #wavebox{position:absolute;top:22px;left:50%;transform:translateX(-50%);text-align:center;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.8)}
   #wavebox .w{font-size:20px;letter-spacing:4px;font-weight:600}
   #wavebox .e{font-size:13px;color:#9fb3c8;margin-top:2px;letter-spacing:1px}
+  #bossbar{position:absolute;top:62px;left:50%;transform:translateX(-50%);width:46%;max-width:620px;text-align:center}
+  #bossbar .bn{font-size:13px;letter-spacing:4px;color:#e7a6ff;text-shadow:0 2px 8px rgba(0,0,0,.8);margin-bottom:3px}
+  #bossbar .bb{height:12px;border-radius:6px;background:rgba(0,0,0,.45);border:1px solid rgba(200,120,230,.5);overflow:hidden}
+  #bossfill{height:100%;width:100%;border-radius:6px;background:linear-gradient(90deg,#b026d3,#ff5b9e);transition:width .15s}
   #kills{position:absolute;top:22px;right:28px;color:#fff;text-align:right;text-shadow:0 2px 8px rgba(0,0,0,.7);font-size:14px;letter-spacing:1px}
   #kills b{font-size:24px;color:#ffd76a}
   #skills{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);display:flex;gap:12px}
@@ -80,6 +84,7 @@
   <div id="ammobox"><div class="mag"><span id="mag">30</span></div><div class="res">/ <span id="reserve">120</span></div><div class="gun" id="gunname">M9 手枪 · Lv1</div><div id="wpnup"></div></div>
   <div id="reloadtip">按 R 换弹</div>
   <div id="wavebox"><div class="w">第 <span id="wave">1</span> 波</div><div class="e">剩余敌人 <span id="ecount">0</span></div></div>
+  <div id="bossbar" class="hidden"><div class="bn">👑 BOSS</div><div class="bb"><div id="bossfill"></div></div></div>
   <div id="kills">击杀 <b id="kcount">0</b><br><span style="font-size:12px;color:#7d8999">爆头 <span id="hcount">0</span></span></div>
   <div id="skills">
     <div class="skill" id="sk-dash"><div class="ico">⚡</div><div class="key">Q 冲刺</div><div class="cd"></div></div>
@@ -104,8 +109,11 @@
     <span class="k">G</span><b>破片手雷</b>：投掷高爆手雷，范围杀伤<br>
     <span class="k">F</span><b>子弹时间</b>：5 秒敌人减速 70%，从容收割<br>
     <span class="k">X</span><b>终极火力（大招）</b>：开启后 8 秒内<b style="color:#ffb04d">无限子弹、射速翻倍</b>，火力全开<br>
+    <span class="k">滚轮</span>切换<b>主/副武器</b>（主=枪械 / 副=匕首，也可按 <span class="k">1</span><span class="k">2</span>）　<span class="k">V</span><b>匕首近战</b>：贴近一刀必杀<br>
     <span style="color:#7d8999">⚠️ 敌人开火前会出现<b style="color:#ff8c5a">橙色激光瞄准线</b>，变红锁定后立即横移闪避！<br>
     🔫 击杀累积<b>解锁全新武器类型</b>：手枪→冲锋枪→突击步枪→霰弹枪→狙击枪→重机枪→等离子（8/20/38/60/85/120 杀）<br>
+    🧗 场景中<b style="color:#5fd6e8">青色台阶方块</b>可跳跃攀上，抢占制高点<br>
+    👑 <b style="color:#c97ad6">每一波都会出现 BOSS</b>（紫色巨型敌兵），击破后掉落大量补给<br>
     敌人会掉落 ❤️ 医疗包 与 📦 弹药箱，靠近自动拾取。撑过尽可能多的波次！</span>
   </div>
   <button class="btn" id="startBtn">开始行动</button>
@@ -206,6 +214,11 @@ const boxCols=[0x7a4d3a,0x3d5a4a,0x44506b,0x6b5a3d];
   addBox(p[0],p[1],2.6,2.6,2.6,0x8a6a42);
   addBox(p[0]+2.8,p[1]+.4,2.2,2.2,2.2,0x967449);
 });
+/* —— 可跳跃台阶方块（青色）：玩家可逐级跳上制高点 —— */
+const jumpCol=0x3a8ca0;
+[[-10,-2,1.2],[-13,-2,2.4],[-16,-2,3.6]].forEach(p=>addBox(p[0],p[1],4,p[2],4,jumpCol));   // 左侧三级阶梯
+[[16,14,1.2],[19,16,2.4],[22,18,3.6]].forEach(p=>addBox(p[0],p[1],4,p[2],4,jumpCol));        // 右侧三级阶梯
+[[0,22,1.3],[-24,-16,1.6],[28,-8,1.4],[8,-14,1.1],[-32,20,2.0]].forEach(p=>addBox(p[0],p[1],3.4,p[2],3.4,jumpCol)); // 散布单层跳台
 
 /* ---------------- 音效（WebAudio 程序合成） ---------------- */
 let AC=null;
@@ -271,6 +284,66 @@ const flashMesh=new THREE.Mesh(
   new THREE.MeshBasicMaterial({color:0xffd9a0,transparent:true,opacity:0})
 );
 muzzle.add(flashMesh);
+
+/* ---------------- 匕首近战 ---------------- */
+const knife=new THREE.Group();
+(function(){
+  const blade=new THREE.Mesh(new THREE.BoxGeometry(.022,.012,.24),new THREE.MeshStandardMaterial({color:0xd6dde4,metalness:.85,roughness:.25}));
+  blade.position.set(0,0,-.14);
+  const tip=new THREE.Mesh(new THREE.ConeGeometry(.014,.07,4),new THREE.MeshStandardMaterial({color:0xeaf0f5,metalness:.85,roughness:.2}));
+  tip.rotation.x=-Math.PI/2;tip.position.set(0,0,-.29);
+  const guard=new THREE.Mesh(new THREE.BoxGeometry(.06,.018,.02),new THREE.MeshStandardMaterial({color:0x2a2a2a}));
+  guard.position.set(0,0,-.02);
+  const handle=new THREE.Mesh(new THREE.CylinderGeometry(.016,.016,.1,8),new THREE.MeshStandardMaterial({color:0x3a2c20,roughness:.9}));
+  handle.rotation.x=Math.PI/2;handle.position.set(0,0,.04);
+  knife.add(blade,tip,guard,handle);
+  knife.position.set(.2,-.18,-.3);
+  knife.visible=false;
+  camera.add(knife);
+})();
+let knifeCd=0,knifeSwing=0;
+function knifeAttack(){
+  if(knifeCd>0)return;
+  knifeCd=.5;knifeSwing=.22;knife.visible=true;
+  sfxTone(720,.05,.2,"square");setTimeout(()=>sfxTone(380,.06,.16,"sawtooth"),45);
+  const cam=camera.getWorldPosition(new THREE.Vector3());
+  const fwd=new THREE.Vector3(0,0,-1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion()));
+  let hit=false;
+  for(const e of enemies){
+    if(!e.alive)continue;
+    const to=e.pos.clone().setY(cam.y).sub(cam);
+    const d=to.length();
+    if(d>2.8)continue;
+    to.normalize();
+    if(to.dot(fwd)>.55){                       // 正前方锥形范围内
+      const dmg=e.isBoss?220:400;              // 普通敌一刀必杀，BOSS 重创
+      damageEnemy(e,dmg,false);
+      showDmgNum(e.body.getWorldPosition(new THREE.Vector3()),dmg,false);
+      spawnBlood(e.body.getWorldPosition(new THREE.Vector3()));
+      hit=true;
+    }
+  }
+  if(hit)showHitmark();
+}
+/* 主/副武器切换：gun=主武器(当前枪械) / knife=副武器(匕首)，滚轮或数字键切换 */
+let equip="gun";
+function setEquip(w){
+  if(equip===w)return;
+  equip=w;mouseDown=false;
+  gun.visible=(w==="gun");
+  knife.visible=(w==="knife");
+  knife.rotation.set(0,0,0);
+  if(w==="knife"){
+    $("gunname").textContent="战术匕首 · 近战";
+    $("mag").textContent="∞";$("reserve").textContent="";$("reloadtip").style.opacity=0;
+    addFeed("🔪 切换至 <b>副武器 · 匕首</b>");
+  }else{
+    $("gunname").textContent=WLEVELS[weapon.level].name+" · Lv"+(weapon.level+1);
+    updateAmmoHUD();
+    addFeed("🔫 切换至 <b>主武器 · "+WLEVELS[weapon.level].name+"</b>");
+  }
+}
+function toggleEquip(){setEquip(equip==="gun"?"knife":"gun");}
 
 /* 按武器类型重建枪械模型：升级换装时外形随之变化 */
 let gunParts=[];
@@ -359,16 +432,22 @@ addEventListener("keydown",e=>{
   if(e.code==="KeyG")skillNade();
   if(e.code==="KeyF")skillSlow();
   if(e.code==="KeyX")skillUlt();
+  if(e.code==="KeyV")knifeAttack();
+  if(e.code==="Digit1")setEquip("gun");
+  if(e.code==="Digit2")setEquip("knife");
 });
 addEventListener("keyup",e=>keys[e.code]=false);
+// 滚轮切换主/副武器
+addEventListener("wheel",e=>{if(state==="playing")toggleEquip();},{passive:true});
 addEventListener("mousedown",e=>{
   if(e.button===2){if(state==="playing")ads=true;return;}
   if(e.button!==0)return;
   // 点到按钮等 UI 时不算开枪
   if(e.target.closest&&e.target.closest(".btn"))return;
-  mouseDown=true;
   // 游戏中且未锁定时，点击画面尝试重新锁定鼠标
   if(state==="playing"&&!pointerLocked)lockPointer();
+  if(equip==="knife"){if(state==="playing")knifeAttack();return;}  // 副武器：单击挥砍
+  mouseDown=true;
 });
 addEventListener("mouseup",e=>{
   if(e.button===2){ads=false;return;}
@@ -412,7 +491,7 @@ function collide(pos,r){
   pos.z=Math.max(-ARENA+1,Math.min(ARENA-1,pos.z));
   // AABB 推出（圆柱近似）
   for(const o of obstacles){
-    if(pos.y-1.7>o.max.y)continue;
+    if(pos.y-1.7>=o.max.y-.05)continue;   // 脚已踩上/越过方块顶面则不再水平阻挡
     const cx=Math.max(o.min.x,Math.min(pos.x,o.max.x));
     const cz=Math.max(o.min.z,Math.min(pos.z,o.max.z));
     const dx=pos.x-cx,dz=pos.z-cz;
@@ -430,6 +509,19 @@ function collide(pos,r){
       }
     }
   }
+}
+/* 玩家脚下支撑高度：在其 XZ 投影内、顶面不高于膝盖的方块取最高顶面（地面为 0） */
+function groundHeightAt(pos){
+  let h=0;const feet=pos.y-1.7;
+  for(const o of obstacles){
+    const cx=Math.max(o.min.x,Math.min(pos.x,o.max.x));
+    const cz=Math.max(o.min.z,Math.min(pos.z,o.max.z));
+    const dx=pos.x-cx,dz=pos.z-cz;
+    if(dx*dx+dz*dz<(player.radius+.05)*(player.radius+.05)){
+      if(o.max.y>h&&o.max.y<=feet+.35)h=o.max.y;
+    }
+  }
+  return h;
 }
 
 /* ---------------- 武器 ---------------- */
@@ -568,7 +660,7 @@ const enemies=[];
 const eMatBody=new THREE.MeshStandardMaterial({color:0x8a3030,roughness:.8});
 const eMatDark=new THREE.MeshStandardMaterial({color:0x55241f,roughness:.8});
 const eMatHead=new THREE.MeshStandardMaterial({color:0xc9a285,roughness:.9});
-function makeEnemy(x,z,wave){
+function makeEnemy(x,z,wave,isBoss){
   const g=new THREE.Group();
   const body=new THREE.Mesh(new THREE.BoxGeometry(.7,.9,.4),eMatBody.clone());
   body.position.y=1.05;
@@ -587,15 +679,24 @@ function makeEnemy(x,z,wave){
   g.add(body,head,helmet,legL,legR,armL,armR,egun);
   g.traverse(o=>{if(o.isMesh){o.castShadow=true;}});
   g.position.set(x,0,z);
+  if(isBoss){                                   // BOSS：放大并换成紫色配色
+    g.scale.setScalar(2.4);
+    body.material.color.setHex(0x6a1f8a);
+    armL.material.color.setHex(0x6a1f8a);armR.material.color.setHex(0x6a1f8a);
+    helmet.material.color.setHex(0x2a0d3a);
+    head.material.color.setHex(0xd8b0c0);
+    egun.material.color.setHex(0x1a0a24);
+  }
   scene.add(g);
-  const hp=Math.round(100*(1+.18*(wave-1)));
+  const hp=isBoss?Math.round(700*(1+.28*(wave-1))):Math.round(100*(1+.18*(wave-1)));
   const enemy={
     group:g,head:head,body:body,legs:[legL,legR],
     hitMeshes:[body,head,helmet,legL,legR,armL,armR],
     pos:g.position,
+    isBoss:!!isBoss,
     hp:hp,maxHp:hp,
-    speed:2.6+Math.min(wave*.18,2.2)+Math.random()*.6,
-    dmg:6+Math.min(wave,10),
+    speed:(isBoss?1.7:2.6)+Math.min(wave*.18,2.2)*(isBoss?.4:1)+Math.random()*.5,
+    dmg:isBoss?(16+Math.min(wave*2,30)):6+Math.min(wave,10),
     fireCd:1+Math.random()*1.5,
     alive:true,deadT:0,
     strafe:(Math.random()<.5?-1:1),
@@ -617,6 +718,7 @@ function makeEnemy(x,z,wave){
 function damageEnemy(e,dmg,isHead){
   if(!e.alive)return;
   e.hp-=dmg;
+  if(e.isBoss)updateBossBar();
   spawnBlood(isHead?e.head.getWorldPosition(new THREE.Vector3()):e.body.getWorldPosition(new THREE.Vector3()));
   // 受击闪白
   e.hitMeshes.forEach(m=>{m.material.emissive=new THREE.Color(0x664444);});
@@ -628,11 +730,20 @@ function killEnemy(e,isHead){
   if(e.aimT>0){scene.remove(e.aimLine);e.aimT=0;e.locked=false;}
   game.kills++;if(isHead)game.heads++;
   checkUpgrade();
-  addFeed(isHead?"💀 <b>爆头击杀</b> 敌方突击兵":"✔ 击杀 敌方突击兵");
+  if(e.isBoss){
+    addFeed("👑 <b>BOSS 已击破！</b>");
+    showBanner("💥 BOSS 已击破");
+    weapon.reserve+=120;updateAmmoHUD();
+    spawnPickup(e.pos.x,e.pos.z,"hp");
+    spawnPickup(e.pos.x+2,e.pos.z+1,"ammo");
+    if(game.boss===e){game.boss=null;hideBossBar();}
+    sfxBoom();
+  }else{
+    addFeed(isHead?"💀 <b>爆头击杀</b> 敌方突击兵":"✔ 击杀 敌方突击兵");
+    if(Math.random()<.3)spawnPickup(e.pos.x,e.pos.z,Math.random()<.5?"hp":"ammo");  // 普通敌 30% 掉落
+  }
   $("kcount").textContent=game.kills;
   $("hcount").textContent=game.heads;
-  // 30% 掉落
-  if(Math.random()<.3)spawnPickup(e.pos.x,e.pos.z,Math.random()<.5?"hp":"ammo");
   updateWaveHUD();
 }
 function enemyLOS(e){
@@ -764,8 +875,15 @@ function explodeNade(pos){
 }
 
 /* ---------------- 波次 ---------------- */
-const game={wave:0,kills:0,heads:0,pendingSpawn:0,spawnTimer:0,intermission:0};
+const game={wave:0,kills:0,heads:0,pendingSpawn:0,spawnTimer:0,intermission:0,boss:null};
 function aliveCount(){return enemies.filter(e=>e.alive).length;}
+function showBossBar(){$("bossbar").classList.remove("hidden");updateBossBar();}
+function updateBossBar(){
+  const b=game.boss;
+  if(!b||!b.alive){$("bossbar").classList.add("hidden");return;}
+  $("bossfill").style.width=Math.max(0,b.hp/b.maxHp*100)+"%";
+}
+function hideBossBar(){$("bossbar").classList.add("hidden");}
 function startWave(){
   game.wave++;
   $("wave").textContent=game.wave;
@@ -773,6 +891,11 @@ function startWave(){
   game.spawnTimer=.5;
   showBanner("第 "+game.wave+" 波来袭");
   sfxTone(440,.3,.2,"sine");setTimeout(()=>sfxTone(550,.4,.2,"sine"),250);
+  // 每波生成一个 BOSS（计入波次清剿，需击破才能进入下一波）
+  const bp=spawnPoint();
+  game.boss=makeEnemy(bp.x,bp.z,game.wave,true);
+  showBossBar();
+  setTimeout(()=>{showBanner("⚠️ BOSS 出现");sfxBoom();},1400);
   updateWaveHUD();
 }
 function spawnPoint(){
@@ -944,6 +1067,16 @@ function loop(){
   }
   updateSkillHUD(dt);
 
+  /* --- 匕首冷却与挥砍动画 --- */
+  if(knifeCd>0)knifeCd-=dt;
+  if(knifeSwing>0){
+    knifeSwing-=dt;
+    const k=Math.max(0,knifeSwing/.22);
+    knife.rotation.x=-1.4*Math.sin(k*Math.PI);
+    knife.rotation.z=.5*Math.sin(k*Math.PI);
+    if(knifeSwing<=0){knife.rotation.set(0,0,0);knife.visible=(equip==="knife");}
+  }
+
   /* --- 开镜插值（FOV / 灵敏度 / 速度 / UI 同步过渡） --- */
   adsLerp+=((ads?1:0)-adsLerp)*Math.min(1,dt*12);
   if(adsLerp<.003)adsLerp=0;
@@ -970,11 +1103,14 @@ function loop(){
   }
   player.pos.add(move.multiplyScalar(speed*dt));
   // 跳跃/重力
-  if(keys.Space&&player.onGround){player.vel.y=7.2;player.onGround=false;}
+  if(keys.Space&&player.onGround){player.vel.y=8.2;player.onGround=false;}
   player.vel.y-=22*dt;
   player.pos.y+=player.vel.y*dt;
-  if(player.pos.y<=1.7){player.pos.y=1.7;player.vel.y=0;player.onGround=true;}
   collide(player.pos,player.radius);
+  // 落地/站立：以脚下方块顶面为支撑高度，可站上跳台
+  const floorEye=groundHeightAt(player.pos)+1.7;
+  if(player.vel.y<=0&&player.pos.y<=floorEye){player.pos.y=floorEye;player.vel.y=0;player.onGround=true;}
+  else if(player.pos.y>floorEye+.02)player.onGround=false;
   yawObj.position.copy(player.pos);
   yawObj.rotation.y=player.yaw;
   pitchObj.rotation.x=player.pitch;
