@@ -51,10 +51,13 @@
   .skill .key{position:absolute;bottom:2px;left:0;right:0;font-size:10px;color:#9fc3ee;letter-spacing:1px}
   .skill .cd{position:absolute;inset:0;background:rgba(8,12,20,.82);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:700;transform:translateY(100%)}
   .skill.ready{box-shadow:0 0 14px rgba(80,160,255,.45);border-color:#6db3ff}
+  .skill.ultactive{box-shadow:0 0 18px rgba(255,150,40,.85);border-color:#ffb04d;animation:ultpulse .6s infinite alternate}
+  @keyframes ultpulse{to{box-shadow:0 0 26px rgba(255,180,80,1)}}
   #banner{position:absolute;left:50%;top:32%;transform:translateX(-50%);font-size:40px;font-weight:700;letter-spacing:10px;color:#ffd76a;text-shadow:0 4px 24px rgba(0,0,0,.85);opacity:0;transition:opacity .4s;white-space:nowrap}
   #dmgfx{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 52%,rgba(220,30,30,.55) 100%);opacity:0}
   #slowfx{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(40,90,200,.05) 40%,rgba(40,110,255,.22) 100%);opacity:0;transition:opacity .3s}
   #healfx{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(60,220,130,.35) 100%);opacity:0;transition:opacity .3s}
+  #ultfx{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 42%,rgba(255,150,40,.30) 100%);opacity:0;transition:opacity .3s}
   #adsfx{position:absolute;inset:0;opacity:0;background:radial-gradient(circle at center,transparent 32%,rgba(0,0,0,.88) 72%)}
   #adsfx::before{content:"";position:absolute;left:50%;top:50%;width:52vmin;height:52vmin;transform:translate(-50%,-50%);border:2px solid rgba(180,220,255,.45);border-radius:50%}
   #adsfx::after{content:"";position:absolute;left:50%;top:50%;width:5px;height:5px;transform:translate(-50%,-50%);background:#ff5b5b;border-radius:50%;box-shadow:0 0 6px #ff5b5b}
@@ -74,7 +77,7 @@
   <div id="cross"><div class="c t"></div><div class="c b"></div><div class="c l"></div><div class="c r"></div></div>
   <div id="hitmark"></div>
   <div id="vitals"><div id="hpnum">100</div><div id="hpbar"><div id="hpfill"></div></div></div>
-  <div id="ammobox"><div class="mag"><span id="mag">30</span></div><div class="res">/ <span id="reserve">120</span></div><div class="gun" id="gunname">AR-15 突击步枪 · Lv1</div><div id="wpnup"></div></div>
+  <div id="ammobox"><div class="mag"><span id="mag">30</span></div><div class="res">/ <span id="reserve">120</span></div><div class="gun" id="gunname">M9 手枪 · Lv1</div><div id="wpnup"></div></div>
   <div id="reloadtip">按 R 换弹</div>
   <div id="wavebox"><div class="w">第 <span id="wave">1</span> 波</div><div class="e">剩余敌人 <span id="ecount">0</span></div></div>
   <div id="kills">击杀 <b id="kcount">0</b><br><span style="font-size:12px;color:#7d8999">爆头 <span id="hcount">0</span></span></div>
@@ -83,9 +86,10 @@
     <div class="skill" id="sk-heal"><div class="ico">💉</div><div class="key">E 医疗</div><div class="cd"></div></div>
     <div class="skill" id="sk-nade"><div class="ico">💣</div><div class="key">G 手雷</div><div class="cd"></div></div>
     <div class="skill" id="sk-slow"><div class="ico">⏳</div><div class="key">F 时缓</div><div class="cd"></div></div>
+    <div class="skill" id="sk-ult"><div class="ico">🔥</div><div class="key">X 大招</div><div class="cd"></div></div>
   </div>
   <div id="banner"></div>
-  <div id="dmgfx"></div><div id="slowfx"></div><div id="healfx"></div><div id="adsfx"></div>
+  <div id="dmgfx"></div><div id="slowfx"></div><div id="healfx"></div><div id="ultfx"></div><div id="adsfx"></div>
   <div id="feed"></div>
   <canvas id="minimap" width="150" height="150"></canvas>
 </div>
@@ -99,8 +103,9 @@
     <span class="k">E</span><b>战地医疗</b>：3 秒内恢复 50 点生命<br>
     <span class="k">G</span><b>破片手雷</b>：投掷高爆手雷，范围杀伤<br>
     <span class="k">F</span><b>子弹时间</b>：5 秒敌人减速 70%，从容收割<br>
+    <span class="k">X</span><b>终极火力（大招）</b>：开启后 8 秒内<b style="color:#ffb04d">无限子弹、射速翻倍</b>，火力全开<br>
     <span style="color:#7d8999">⚠️ 敌人开火前会出现<b style="color:#ff8c5a">橙色激光瞄准线</b>，变红锁定后立即横移闪避！<br>
-    🔫 击杀累积可<b>升级武器</b>（10 / 25 / 45 / 70 杀），伤害射速弹匣全面提升<br>
+    🔫 击杀累积<b>解锁全新武器类型</b>：手枪→冲锋枪→突击步枪→霰弹枪→狙击枪→重机枪→等离子（8/20/38/60/85/120 杀）<br>
     敌人会掉落 ❤️ 医疗包 与 📦 弹药箱，靠近自动拾取。撑过尽可能多的波次！</span>
   </div>
   <button class="btn" id="startBtn">开始行动</button>
@@ -255,22 +260,8 @@ scene.add(yawObj);
 
 /* ---------------- 枪械模型（挂在相机上） ---------------- */
 const gun=new THREE.Group();
-(function(){
-  const dark=new THREE.MeshStandardMaterial({color:0x23272d,roughness:.5,metalness:.55});
-  const grip=new THREE.MeshStandardMaterial({color:0x3a342c,roughness:.8});
-  const body=new THREE.Mesh(new THREE.BoxGeometry(.07,.10,.46),dark);
-  const barrel=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,.3,8),dark);
-  barrel.rotation.x=Math.PI/2;barrel.position.set(0,.02,-.36);
-  const mag=new THREE.Mesh(new THREE.BoxGeometry(.05,.14,.08),grip);
-  mag.position.set(0,-.11,-.05);mag.rotation.x=.15;
-  const stock=new THREE.Mesh(new THREE.BoxGeometry(.06,.08,.18),grip);
-  stock.position.set(0,-.01,.28);
-  const sight=new THREE.Mesh(new THREE.BoxGeometry(.02,.04,.06),dark);
-  sight.position.set(0,.07,-.1);
-  gun.add(body,barrel,mag,stock,sight);
-  gun.position.set(.22,-.18,-.45);
-  camera.add(gun);
-})();
+gun.position.set(.22,-.18,-.45);
+camera.add(gun);
 const muzzle=new THREE.Object3D();
 muzzle.position.set(0,.02,-.55);gun.add(muzzle);
 const flash=new THREE.PointLight(0xffc26b,0,6);
@@ -280,6 +271,78 @@ const flashMesh=new THREE.Mesh(
   new THREE.MeshBasicMaterial({color:0xffd9a0,transparent:true,opacity:0})
 );
 muzzle.add(flashMesh);
+
+/* 按武器类型重建枪械模型：升级换装时外形随之变化 */
+let gunParts=[];
+function buildGunModel(level){
+  for(const m of gunParts){gun.remove(m);if(m.geometry)m.geometry.dispose();}
+  gunParts.length=0;
+  const conf=WLEVELS[level]||WLEVELS[0];
+  const dark=new THREE.MeshStandardMaterial({color:conf.color,roughness:.5,metalness:.55});
+  const grip=new THREE.MeshStandardMaterial({color:0x2c281f,roughness:.85});
+  const accent=new THREE.MeshStandardMaterial({color:0x16181c,roughness:.6,metalness:.45});
+  const cyl=(r1,r2,h)=>new THREE.CylinderGeometry(r1,r2,h,10);
+  const add=(geo,mat,x,y,z,rx)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);if(rx)m.rotation.x=rx;gun.add(m);gunParts.push(m);return m;};
+  let mz=-.55;
+  switch(level){
+    case 0: // M9 手枪：小巧紧凑
+      add(new THREE.BoxGeometry(.055,.10,.24),dark,0,0,-.04);
+      add(cyl(.014,.014,.1),accent,0,.025,-.2,Math.PI/2);
+      add(new THREE.BoxGeometry(.05,.13,.07),grip,0,-.10,.05,.22);
+      mz=-.24;break;
+    case 1: // MP5 冲锋枪：短管+前握把
+      add(new THREE.BoxGeometry(.065,.11,.32),dark,0,0,-.06);
+      add(cyl(.016,.016,.14),accent,0,.02,-.3,Math.PI/2);
+      add(new THREE.BoxGeometry(.045,.17,.07),grip,0,-.13,0,.12);
+      add(new THREE.BoxGeometry(.05,.07,.13),grip,0,-.01,.2);
+      add(new THREE.BoxGeometry(.035,.07,.04),grip,0,-.07,-.16);
+      mz=-.4;break;
+    case 2: // AR-15 突击步枪：经典造型
+      add(new THREE.BoxGeometry(.07,.10,.46),dark,0,0,0);
+      add(cyl(.018,.018,.3),accent,0,.02,-.36,Math.PI/2);
+      add(new THREE.BoxGeometry(.05,.14,.08),grip,0,-.11,-.05,.15);
+      add(new THREE.BoxGeometry(.06,.08,.18),grip,0,-.01,.28);
+      add(new THREE.BoxGeometry(.02,.04,.06),dark,0,.07,-.1);
+      mz=-.55;break;
+    case 3: // SPAS-12 霰弹枪：粗壮双管+泵
+      add(new THREE.BoxGeometry(.085,.11,.5),dark,0,0,0);
+      add(cyl(.027,.027,.46),accent,0,.03,-.36,Math.PI/2);
+      add(cyl(.019,.019,.42),accent,0,-.025,-.34,Math.PI/2);
+      add(new THREE.BoxGeometry(.07,.05,.11),grip,0,-.07,-.26);
+      add(new THREE.BoxGeometry(.07,.10,.2),grip,0,-.02,.3);
+      mz=-.6;break;
+    case 4: // M40 狙击步枪：超长枪管+瞄准镜
+      add(new THREE.BoxGeometry(.06,.09,.52),dark,0,0,0);
+      add(cyl(.015,.015,.62),accent,0,.02,-.52,Math.PI/2);
+      add(cyl(.037,.037,.2),accent,0,.105,-.04,Math.PI/2);
+      add(new THREE.CylinderGeometry(.03,.03,.02,12),new THREE.MeshBasicMaterial({color:0x6fd0ff}),0,.105,-.14,Math.PI/2);
+      add(new THREE.BoxGeometry(.012,.06,.012),dark,0,.07,.04);
+      add(new THREE.BoxGeometry(.012,.06,.012),dark,0,.07,-.12);
+      add(new THREE.BoxGeometry(.065,.10,.26),grip,0,-.02,.34);
+      mz=-.82;break;
+    case 5:{ // M249 重机枪：弹箱+两脚架
+      add(new THREE.BoxGeometry(.095,.12,.5),dark,0,0,-.02);
+      add(cyl(.024,.024,.42),accent,0,.02,-.44,Math.PI/2);
+      add(new THREE.BoxGeometry(.13,.16,.17),grip,0,-.15,.02);
+      add(new THREE.BoxGeometry(.06,.08,.2),grip,0,-.01,.3);
+      const l1=add(cyl(.008,.008,.22),accent,.05,-.14,-.34);l1.rotation.z=.4;
+      const l2=add(cyl(.008,.008,.22),accent,-.05,-.14,-.34);l2.rotation.z=-.4;
+      mz=-.7;break;
+    }
+    default:{ // 「审判者」等离子原型机：发光能量结构
+      const glow=new THREE.MeshStandardMaterial({color:0x0a2230,emissive:0x33d6ff,emissiveIntensity:.95,roughness:.3,metalness:.6});
+      add(new THREE.BoxGeometry(.08,.12,.46),dark,0,0,0);
+      add(cyl(.03,.03,.34),glow,0,.02,-.32,Math.PI/2);
+      add(new THREE.TorusGeometry(.05,.012,8,16),glow,0,.02,-.22);
+      add(new THREE.TorusGeometry(.05,.012,8,16),glow,0,.02,-.4);
+      add(new THREE.BoxGeometry(.05,.15,.08),grip,0,-.12,.02,.12);
+      add(new THREE.BoxGeometry(.06,.08,.18),dark,0,-.01,.26);
+      add(new THREE.SphereGeometry(.03,8,8),glow,0,.02,-.5);
+      mz=-.52;break;
+    }
+  }
+  muzzle.position.set(0,.02,mz);
+}
 
 /* ---------------- 输入 ---------------- */
 const keys={};
@@ -295,6 +358,7 @@ addEventListener("keydown",e=>{
   if(e.code==="KeyE")skillHeal();
   if(e.code==="KeyG")skillNade();
   if(e.code==="KeyF")skillSlow();
+  if(e.code==="KeyX")skillUlt();
 });
 addEventListener("keyup",e=>keys[e.code]=false);
 addEventListener("mousedown",e=>{
@@ -369,15 +433,18 @@ function collide(pos,r){
 }
 
 /* ---------------- 武器 ---------------- */
-const weapon={mag:30,magSize:30,reserve:120,fireRate:.105,cooldown:0,reloading:false,reloadT:0,spread:0,recoil:0,level:0,dmgMul:1};
-/* 武器升级树：击杀数达标自动换装 */
+const weapon={mag:12,magSize:12,reserve:120,fireRate:.26,cooldown:0,reloading:false,reloadT:0,spread:0,recoil:0,level:0,dmgMul:1,pellets:1,pelletSpread:0};
+/* 武器升级树：击杀数达标自动换装为不同类型武器 */
 const WLEVELS=[
-  {kills:0, name:"AR-15 突击步枪", dmg:1,   rate:.105,mag:30,color:0x23272d},
-  {kills:10,name:"AR-15 MK2",     dmg:1.2, rate:.09, mag:35,color:0x2c4a35},
-  {kills:25,name:"M4 战术卡宾",    dmg:1.45,rate:.08, mag:40,color:0x2d4a6b},
-  {kills:45,name:"HK 重型突击",    dmg:1.7, rate:.07, mag:50,color:0x6b4a2d},
-  {kills:70,name:"「审判者」原型机",dmg:2.1, rate:.058,mag:60,color:0x8a6a1f}
+  {kills:0,  name:"M9 手枪",         type:"半自动手枪", dmg:1,   rate:.26, mag:12, color:0x23272d, pellets:1, spread:0},
+  {kills:8,  name:"MP5 冲锋枪",      type:"高射速冲锋枪", dmg:.85, rate:.065,mag:30, color:0x2c4a35, pellets:1, spread:0},
+  {kills:20, name:"AR-15 突击步枪",  type:"全能突击步枪", dmg:1.3, rate:.10, mag:30, color:0x2d4a6b, pellets:1, spread:0},
+  {kills:38, name:"SPAS-12 霰弹枪",  type:"近战霰弹枪", dmg:.6,  rate:.62, mag:8,  color:0x6b4a2d, pellets:8, spread:.06},
+  {kills:60, name:"M40 狙击步枪",    type:"高伤狙击枪", dmg:4.2, rate:.95, mag:5,  color:0x3d5a4a, pellets:1, spread:0},
+  {kills:85, name:"M249 重机枪",     type:"压制重机枪", dmg:1.25,rate:.05, mag:100,color:0x55504a, pellets:1, spread:0},
+  {kills:120,name:"「审判者」原型机", type:"等离子原型机", dmg:2.6, rate:.045,mag:60, color:0x8a6a1f, pellets:1, spread:0}
 ];
+buildGunModel(0);   // 初始装备 M9 手枪外形
 function checkUpgrade(){
   const next=WLEVELS[weapon.level+1];
   if(next&&game.kills>=next.kills){
@@ -385,17 +452,18 @@ function checkUpgrade(){
     weapon.dmgMul=next.dmg;
     weapon.fireRate=next.rate;
     weapon.magSize=next.mag;
-    weapon.mag=next.mag;            // 升级即满弹
-    weapon.reserve+=40;
+    weapon.mag=next.mag;            // 换装即满弹
+    weapon.pellets=next.pellets;
+    weapon.pelletSpread=next.spread;
+    weapon.reserve+=Math.max(40,next.mag*4);   // 按弹匣补充备弹
     weapon.reloading=false;
     $("gunname").textContent=next.name+" · Lv"+(weapon.level+1);
-    showBanner("🔫 武器升级");
-    addFeed("🔫 武器升级为 <b>"+next.name+"</b>");
+    showBanner("🔫 解锁 "+next.type);
+    addFeed("🔫 已换装 <b>"+next.name+"</b>（"+next.type+"）");
     sfxTone(523,.12,.22,"square");
     setTimeout(()=>sfxTone(784,.12,.22,"square"),120);
     setTimeout(()=>sfxTone(1046,.2,.22,"square"),240);
-    // 枪身金属部件随等级换色
-    gun.traverse(o=>{if(o.isMesh&&o.material.metalness>.4)o.material.color.setHex(next.color);});
+    buildGunModel(weapon.level);   // 换装：枪械外形整体重建
     updateAmmoHUD();
   }
   updateUpgradeHUD();
@@ -417,47 +485,54 @@ function reload(){
 }
 function shoot(){
   if(weapon.cooldown>0||weapon.reloading)return;
-  if(weapon.mag<=0){reload();return;}
-  weapon.mag--;weapon.cooldown=weapon.fireRate;
+  const ultOn=skills.ult.active>0;
+  if(weapon.mag<=0&&!ultOn){reload();return;}
+  if(!ultOn)weapon.mag--;                       // 大招期间不消耗弹药
+  weapon.cooldown=weapon.fireRate*(ultOn?.5:1); // 大招期间射速翻倍
   weapon.spread=Math.min(weapon.spread+.012,.06);
   weapon.recoil=1;
   player.pitch+=.006+Math.random()*.004;
   sfxShot();
   flash.intensity=2.5;flashMesh.material.opacity=.9;
   flashMesh.scale.setScalar(.8+Math.random()*.6);
-  // 散布射线（开镜大幅收束）
-  const sp=weapon.spread*(isMoving()?1.5:1)*(1-.72*adsLerp);
-  const dir=new THREE.Vector3(
-    (Math.random()-.5)*sp,
-    (Math.random()-.5)*sp,
-    -1
-  ).normalize().applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion()));
+  // 散布射线（开镜大幅收束；霰弹枪多弹丸固定散布）
+  const baseSp=weapon.spread*(isMoving()?1.5:1)*(1-.72*adsLerp);
   const origin=camera.getWorldPosition(new THREE.Vector3());
-  raycaster.set(origin,dir);raycaster.far=200;
-  // 收集敌人 mesh
+  const mzl=muzzle.getWorldPosition(new THREE.Vector3());
+  const camQuat=camera.getWorldQuaternion(new THREE.Quaternion());
+  // 收集敌人 mesh（每次射击只收集一次，多弹丸复用）
   const targets=[];
   for(const e of enemies)if(e.alive)targets.push(...e.hitMeshes);
-  const hitsE=raycaster.intersectObjects(targets,false);
-  const hitsO=raycaster.intersectObjects(obstacleMeshes,false);
-  let hitPoint=origin.clone().add(dir.clone().multiplyScalar(120));
-  const eDist=hitsE.length?hitsE[0].distance:Infinity;
-  const oDist=hitsO.length?hitsO[0].distance:Infinity;
-  if(eDist<oDist){
-    const h=hitsE[0];
-    hitPoint=h.point;
-    const enemy=h.object.userData.enemy;
-    const isHead=h.object.userData.part==="head";
-    const dmg=Math.round((26+Math.random()*8)*weapon.dmgMul*(isHead?2.5:1));
-    damageEnemy(enemy,dmg,isHead);
-    showHitmark();
-    showDmgNum(h.point,dmg,isHead);
-    isHead?sfxHead():sfxHit();
-  }else if(oDist<Infinity){
-    hitPoint=hitsO[0].point;
-    spawnImpact(hitPoint);
+  const pellets=weapon.pellets||1;
+  let anyHit=false;
+  for(let pi=0;pi<pellets;pi++){
+    const sp=baseSp+(pellets>1?weapon.pelletSpread:0);
+    const dir=new THREE.Vector3(
+      (Math.random()-.5)*sp,
+      (Math.random()-.5)*sp,
+      -1
+    ).normalize().applyQuaternion(camQuat);
+    raycaster.set(origin,dir);raycaster.far=200;
+    const hitsE=raycaster.intersectObjects(targets,false);
+    const hitsO=raycaster.intersectObjects(obstacleMeshes,false);
+    let hitPoint=origin.clone().add(dir.clone().multiplyScalar(120));
+    const eDist=hitsE.length?hitsE[0].distance:Infinity;
+    const oDist=hitsO.length?hitsO[0].distance:Infinity;
+    if(eDist<oDist){
+      const h=hitsE[0];
+      hitPoint=h.point;
+      const enemy=h.object.userData.enemy;
+      const isHead=h.object.userData.part==="head";
+      const dmg=Math.round((26+Math.random()*8)*weapon.dmgMul*(isHead?2.5:1));
+      damageEnemy(enemy,dmg,isHead);
+      showDmgNum(h.point,dmg,isHead);
+      if(!anyHit){showHitmark();isHead?sfxHead():sfxHit();anyHit=true;}
+    }else if(oDist<Infinity){
+      hitPoint=hitsO[0].point;
+      spawnImpact(hitPoint);
+    }
+    spawnTracer(mzl,hitPoint);
   }
-  const mzl=muzzle.getWorldPosition(new THREE.Vector3());
-  spawnTracer(mzl,hitPoint);
   updateAmmoHUD();
 }
 function isMoving(){return keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD;}
@@ -621,7 +696,8 @@ const skills={
   dash:{cd:0,max:5,active:0},
   heal:{cd:0,max:15,active:0},
   nade:{cd:0,max:8},
-  slow:{cd:0,max:25,active:0}
+  slow:{cd:0,max:25,active:0},
+  ult:{cd:0,max:40,active:0}
 };
 function skillDash(){
   const s=skills.dash;if(s.cd>0)return;
@@ -653,6 +729,16 @@ function skillSlow(){
   sfxTone(110,.8,.3,"sine");
   $("slowfx").style.opacity=1;
   flashSkill("sk-slow");
+}
+function skillUlt(){
+  const s=skills.ult;if(s.cd>0||s.active>0)return;
+  s.cd=s.max;s.active=8;                       // 大招：8 秒无限子弹
+  weapon.mag=weapon.magSize;weapon.reloading=false;
+  showBanner("🔥 终极火力 · 无限弹药");
+  addFeed("🔥 <b>大招启动</b>：无限子弹 · 射速翻倍（8 秒）");
+  $("ultfx").style.opacity=1;
+  sfxTone(160,.5,.3,"sawtooth");setTimeout(()=>sfxTone(330,.45,.25,"square"),130);
+  flashSkill("sk-ult");
 }
 function flashSkill(id){
   const el=$(id);el.style.transform="scale(1.15)";
@@ -749,7 +835,7 @@ function showDmgNum(worldPos,dmg,isHead){
   setTimeout(()=>el.remove(),750);
 }
 function updateSkillHUD(dt){
-  const map=[["sk-dash","dash"],["sk-heal","heal"],["sk-nade","nade"],["sk-slow","slow"]];
+  const map=[["sk-dash","dash"],["sk-heal","heal"],["sk-nade","nade"],["sk-slow","slow"],["sk-ult","ult"]];
   for(const[id,key]of map){
     const s=skills[key],el=$(id),cd=el.querySelector(".cd");
     if(s.cd>0){
@@ -761,6 +847,7 @@ function updateSkillHUD(dt){
       cd.textContent="";
       el.classList.add("ready");
     }
+    if(key==="ult")el.classList.toggle("ultactive",s.active>0);
   }
 }
 /* 小地图 */
@@ -849,6 +936,10 @@ function loop(){
         if(s.active===0)$("healfx").style.opacity=0;
       }
       if(k==="slow"&&s.active===0)$("slowfx").style.opacity=0;
+      if(k==="ult"){
+        if(s.active>0){weapon.mag=weapon.magSize;weapon.reloading=false;}
+        else $("ultfx").style.opacity=0;
+      }
     }
   }
   updateSkillHUD(dt);
@@ -972,7 +1063,7 @@ function loop(){
       const from=e.pos.clone().setY(1.35);
       if(!e.locked){
         e.lockPoint.copy(camera.getWorldPosition(tmpV2));
-        if(e.aimT<=.35){
+        if(e.aimT<=.5){
           e.locked=true;                            // 锁定！弹道定死，赶紧闪
           e.aimLine.material.color.setHex(0xff2020);
           e.aimLine.material.opacity=.95;
@@ -1005,7 +1096,7 @@ function loop(){
       if(e.fireCd<=0){
         if(enemyLOS(e)){
           e.fireCd=1.5+Math.random()*1.4;
-          e.aimT=.95;e.locked=false;
+          e.aimT=2;e.locked=false;                  // 预瞄 2 秒后才开火
           e.aimLine.material.color.setHex(0xff8c3a);
           e.aimLine.material.opacity=.5;
           scene.add(e.aimLine);
